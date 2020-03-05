@@ -1,3 +1,4 @@
+# In[0]: Header and load data
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split #for split the data
@@ -11,21 +12,42 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_
 
 import torch
 
+if torch.cuda.is_available():
+    device = torch.device('cuda')
+
 #from_numpy takes a numpy element and returns torch.tensor
-X = torch.from_numpy(X).type(torch.FloatTensor)
-y = torch.from_numpy(y).type(torch.LongTensor)
+X = torch.from_numpy(X_train.to_numpy()).type(torch.FloatTensor)
+y = torch.from_numpy(y_train.to_numpy()).type(torch.LongTensor)
+X = X.to(device)
+y = y.to(device)
+print("X", X.device)
+print("y", X.device)
+
+from sklearn.metrics import make_scorer, roc_curve #for eer
+from scipy.optimize import brentq #for eer
+from scipy.interpolate import interp1d #for eer
+
+
+# In[2]: Calculate eer rate
+def calculate_eer(y_true, y_score):
+    fpr, tpr, thresholds = roc_curve(y_true, y_score, pos_label=1)
+    eer = brentq(lambda x : 1. - x - interp1d(fpr, tpr)(x), 0., 1.)
+    return eer
+
+
+# In[1]: Model
 
 import torch.nn as nn
 import torch.nn.functional as F#our class must extend nn.Module
-class Net(nn.Module):
+class MyClassifier(nn.Module):
     def __init__(self):
         super(MyClassifier,self).__init__()
         #Our network consists of 3 layers. 1 input, 1 hidden and 1 output layer
         #This applies Linear transformation to input data. 
-        self.fc1 = nn.Linear(2,3)
+        self.fc1 = nn.Linear(34,100)
         
         #This applies linear transformation to produce output data
-        self.fc2 = nn.Linear(3,2)
+        self.fc2 = nn.Linear(100,2)
         
     #This must be implemented
     def forward(self,x):
@@ -52,7 +74,7 @@ class Net(nn.Module):
 
 
 #Initialize the model        
-model = Net()
+model = MyClassifier().cuda()
 #Define loss criterion
 criterion = nn.CrossEntropyLoss()
 #Define the optimizer
@@ -77,7 +99,17 @@ for i in range(epochs):
     optimizer.step()
 
 from sklearn.metrics import accuracy_score
-print(accuracy_score(model.predict(X),y))
+
+X = torch.from_numpy(X_test.to_numpy()).type(torch.FloatTensor)
+y = torch.from_numpy(y_test.to_numpy()).type(torch.LongTensor)
+X = X.to(device)
+y = y.to(device)
+
+
+print('--------------The Accuracy of the model----------------------------')
+print('The accuracy of the Neural Network is', round(accuracy_score(model.predict(X), y_test)*100,2))
+print('--------------The Accuracy of the model----------------------------')
+print('The EER value of the Neural Network is', round(calculate_eer(model.predict(X), y_test)*100,2))
 
 
 def predict(x):
