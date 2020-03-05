@@ -1,1 +1,1 @@
-# keystroke_dnn
+# keystroke_neural_net
