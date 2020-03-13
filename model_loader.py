@@ -31,7 +31,7 @@ class MyClassifier(nn.Module):
         #Output of the first layer
         x = self.fc1(x)
         #Activation function is Relu. Feel free to experiment with this
-        x = F.tanh(x)
+        x = torch.tanh(x)
         #This produces output
         x = self.fc2(x)
         return x
@@ -39,7 +39,7 @@ class MyClassifier(nn.Module):
     #This function takes an input and predicts the class, (0 or 1)        
     def predict(self,x):
         #Apply softmax to output. 
-        pred = F.softmax(self.forward(x))
+        pred = F.softmax(self.forward(x),dim=1)
         ans = []
         #Pick the class with maximum weight
         for t in pred:
